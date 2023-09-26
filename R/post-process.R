@@ -15,6 +15,7 @@
 
 post_process <- function(nodes, edges) {
   e <- 1
+  # browser()
   while (e <= nrow(edges)) {
     from <- edges$from[e]
     to   <- edges$to[e]

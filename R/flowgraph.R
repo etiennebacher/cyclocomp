@@ -7,16 +7,16 @@ flowgraph <- function(expr) {
 
   num_nodes <- 0
   nodes <- list(
-    id = rep("", prealloc),
-    type = rep("", prealloc)
+    id = character(prealloc),
+    type = character(prealloc)
   )
   nodeslast <- rep(list(character()), prealloc)
 
   ## The structure of the graph is stored here
   num_edges <- 0
   edges <- list(
-    from = rep("", prealloc),
-    to = rep("", prealloc)
+    from = character(prealloc),
+    to = character(prealloc)
   )
 
   add_node <- function(x, id, type, last = character()) {
@@ -268,9 +268,9 @@ flowgraph <- function(expr) {
   nodes <- lapply(nodes, head, num_nodes)
   edges <- lapply(edges, head, num_edges)
 
-  nodes <- as.data.frame(stringsAsFactors = FALSE, nodes)
+  nodes <- list2DF(nodes)
   nodes$last <- head(nodeslast, num_nodes)
-  edges <- as.data.frame(stringsAsFactors = FALSE, edges)
+  edges <- list2DF(edges)
 
   edges <- post_process(nodes, edges)
   nodes <- nodes[, names(nodes) != "last"]
