@@ -13,29 +13,55 @@
 ## are processed again.
 
 post_process <- function(nodes, edges) {
-  e <- 1
-  while (e <= nrow(edges)) {
-    from <- edges$from[e]
-    to <- edges$to[e]
-    rec <- nodes[nodes$id == from, ]
-
-    ## If there is no last sub-block, or the edge edge is going to
-    ## a sub-block, then we are all good. Otherwise rewire.
-    if (length(rec$last[[1]]) && !is_child(to, from)) {
-      edges$from[e] <- rec$last[[1]][1]
-      for (l in rec$last[[1]][-1]) {
-        new_edge <- data.frame(
-          stringsAsFactors = FALSE,
-          from = l,
-          to = to
-        )
-        edges <- rbind(edges[1:e, ], new_edge, edges[-(1:e), ])
-      }
-    } else {
-      e <- e + 1
-    }
+  ## Build an id -> "last" lookup once (hashed environment), instead of
+  ## scanning the whole `nodes` data frame for every edge.
+  last_env <- new.env(parent = emptyenv(), hash = TRUE, size = nrow(nodes) * 2L)
+  ids <- nodes$id
+  lasts <- nodes$last
+  for (i in seq_along(ids)) {
+    assign(ids[i], lasts[[i]], envir = last_env)
   }
-  unique(edges)
+
+  from_all <- edges$from
+  to_all <- edges$to
+  res_from <- vector("list", length(from_all))
+  res_to <- vector("list", length(from_all))
+
+  ## Resolve each edge independently. When the source block has a "last"
+  ## sub-block (and the edge does not go into that block), the edge is
+  ## rewired to leave from the "last" sub-block(s). Each rewired source
+  ## may itself need rewiring, so we iterate with an explicit stack.
+  for (k in seq_along(from_all)) {
+    stack_f <- from_all[k]
+    stack_t <- to_all[k]
+    out_f <- character()
+    out_t <- character()
+    while (length(stack_f)) {
+      f <- stack_f[[1L]]
+      t <- stack_t[[1L]]
+      stack_f <- stack_f[-1L]
+      stack_t <- stack_t[-1L]
+      lst <- last_env[[f]]
+      if (length(lst) && !is_child(t, f)) {
+        stack_f <- c(lst, stack_f)
+        stack_t <- c(rep(t, length(lst)), stack_t)
+      } else {
+        out_f <- c(out_f, f)
+        out_t <- c(out_t, t)
+      }
+    }
+    res_from[[k]] <- out_f
+    res_to[[k]] <- out_t
+  }
+
+  from <- unlist(res_from, use.names = FALSE)
+  to <- unlist(res_to, use.names = FALSE)
+  keep <- !duplicated.default(paste(from, to, sep = "\r"))
+  data.frame(
+    stringsAsFactors = FALSE,
+    from = from[keep],
+    to = to[keep]
+  )
 }
 
 is_child <- function(child, parent) {
