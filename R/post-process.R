@@ -39,5 +39,5 @@ post_process <- function(nodes, edges) {
 }
 
 is_child <- function(child, parent) {
-  substring(child, 1, nchar(parent)) == parent && child != parent
+  startsWith(child, parent) && child != parent
 }
