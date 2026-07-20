@@ -13,8 +13,8 @@
 ## are processed again.
 
 post_process <- function(nodes, edges) {
-  ## Look up each node's "last" sub-block by id, instead of rescanning
-  ## the whole `nodes` data frame on every edge.
+  # Extract this vector since subsetting it in the while loop is faster than subsetting
+  # from a dataframe.
   last_by_id <- nodes$last
   names(last_by_id) <- nodes$id
 
